@@ -1,0 +1,416 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Earn - Legendssui</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298, #4a2c6f);
+      color: #e0e7ff;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px 30px;
+      background: rgba(0, 0, 0, 0.6);
+      width: 100%;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+    .logo {
+      width: 40px;
+      height: 40px;
+    }
+    .container {
+      padding: 20px;
+      width: 90%;
+      max-width: 900px;
+      text-align: center;
+      flex: 1;
+    }
+    .connect-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      margin-bottom: 20px;
+      text-align: left;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .connect-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.6);
+    }
+    .connect-card .connect-btn {
+      padding: 8px 15px;
+      background: linear-gradient(90deg, #42a5f5, #1976d2);
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(66, 165, 245, 0.3);
+    }
+    .connect-card .connect-btn:hover {
+      background: linear-gradient(90deg, #64b5f6, #1e88e5);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(66, 165, 245, 0.5);
+    }
+    .connect-card .disconnect-btn {
+      padding: 8px 15px;
+      background: linear-gradient(90deg, #ef5350, #d32f2f);
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(239, 83, 80, 0.3);
+    }
+    .connect-card .disconnect-btn:hover {
+      background: linear-gradient(90deg, #f6685e, #c62828);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(239, 83, 80, 0.5);
+    }
+    .task-card {
+      background: #1c2526;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      margin-bottom: 20px;
+      text-align: left;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .task-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.6);
+    }
+    .task-card h3 {
+      margin: 0 0 15px;
+      font-size: 18px;
+      color: #fff;
+    }
+    .task-card .task-list {
+      margin: 15px 0;
+    }
+    .task-card .task-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .task-card .task-item span {
+      font-size: 14px;
+      color: #e0e7ff;
+    }
+    .task-card .task-item .points {
+      color: #ffd700;
+      font-weight: bold;
+    }
+    .task-card .task-item .claim-btn {
+      padding: 8px 15px;
+      background: linear-gradient(90deg, #757575, #424242);
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      cursor: not-allowed;
+      font-size: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(117, 117, 117, 0.3);
+    }
+    .task-card .task-item .claim-btn.unlocked {
+      background: linear-gradient(90deg, #42a5f5, #1976d2);
+      cursor: pointer;
+    }
+    .task-card .task-item .claim-btn.unlocked:hover {
+      background: linear-gradient(90deg, #64b5f6, #1e88e5);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(66, 165, 245, 0.5);
+    }
+    .task-card .task-item .claim-btn.claimed {
+      background: linear-gradient(90deg, #4caf50, #2e7d32);
+      cursor: default;
+    }
+    .task-card .task-item .claim-btn.claimed:hover {
+      transform: none;
+      box-shadow: none;
+    }
+    footer {
+      margin-top: auto;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: #ccc;
+    }
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+    .nav-bar button {
+      background: none;
+      border: none;
+      color: #bbdefb;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 5px;
+      transition: color 0.3s ease;
+    }
+    .nav-bar button:hover {
+      color: #90caf9;
+    }
+    .nav-bar button span {
+      font-size: 10px;
+      margin-top: 2px;
+    }
+    @media (max-width: 600px) {
+      .header {
+        padding: 10px 15px;
+      }
+      .connect-card, .task-card {
+        padding: 15px;
+      }
+      .task-card h3 {
+        font-size: 16px;
+      }
+      .task-card .task-item span {
+        font-size: 12px;
+      }
+      .task-card .task-item .claim-btn {
+        padding: 6px 12px;
+        font-size: 10px;
+      }
+      .nav-bar button {
+        font-size: 12px;
+      }
+      .nav-bar button span {
+        font-size: 9px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <svg class="logo" viewBox="0 0 100 100" fill="none" stroke="#e0e7ff">
+      <circle cx="50" cy="50" r="40" stroke-width="5"/>
+      <text x="50" y="55" font-size="20" text-anchor="middle" fill="#e0e7ff">L</text>
+    </svg>
+  </div>
+  <div class="container">
+    <div class="connect-card">
+      <h3>Connect Accounts</h3>
+      <div style="margin: 10px 0;">
+        <button class="connect-btn" id="twitterConnect" onclick="connectAccount('twitter')">Connect Twitter</button>
+        <span id="twitterStatus" style="margin-left: 10px; color: #bbb;">Not connected</span>
+        <button class="disconnect-btn" id="twitterDisconnect" style="display: none;" onclick="disconnectAccount('twitter')">Disconnect</button>
+      </div>
+      <div style="margin: 10px 0;">
+        <button class="connect-btn" id="telegramConnect" onclick="connectAccount('telegram')">Connect Telegram</button>
+        <span id="telegramStatus" style="margin-left: 10px; color: #bbb;">Not connected</span>
+        <button class="disconnect-btn" id="telegramDisconnect" style="display: none;" onclick="disconnectAccount('telegram')">Disconnect</button>
+      </div>
+    </div>
+    <div class="task-card">
+      <h3>Tasks to Earn More Points</h3>
+      <div class="task-list">
+        <div class="task-item">
+          <span>Follow us on Twitter</span>
+          <div>
+            <span class="points">+100 Points</span>
+            <button class="claim-btn" id="twitterFollowClaim" onclick="claimTask('twitterFollow')">Claim Now</button>
+          </div>
+        </div>
+        <div class="task-item">
+          <span>Like & Retweet on Twitter</span>
+          <div>
+            <span class="points">+100 Points</span>
+            <button class="claim-btn" id="twitterLikeRetweetClaim" onclick="claimTask('twitterLikeRetweet')">Claim Now</button>
+          </div>
+        </div>
+        <div class="task-item">
+          <span>Join our Telegram</span>
+          <div>
+            <span class="points">+100 Points</span>
+            <button class="claim-btn" id="telegramJoinClaim" onclick="claimTask('telegramJoin')">Claim Now</button>
+          </div>
+        </div>
+        <div class="task-item">
+          <span>Complete Profile</span>
+          <div>
+            <span class="points">+200 Points</span>
+            <button class="claim-btn" id="profileCompleteClaim" onclick="claimTask('profileComplete')">Claim Now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    © 2025 Legendssui. All rights reserved.
+  </footer>
+  <div class="nav-bar">
+    <button onclick="window.location.href='index.html'">
+      <span>🏠</span>
+      <span>Home</span>
+    </button>
+    <button onclick="window.location.href='earn.html'">
+      <span>💰</span>
+      <span>Earn</span>
+    </button>
+    <button onclick="window.location.href='sui_mem_soon.html'">
+      <span>🪐</span>
+      <span>Memepad</span>
+    </button>
+    <button onclick="window.location.href='frens.html'">
+      <span>👥</span>
+      <span>Frens</span>
+    </button>
+  </div>
+  <script>
+    let balance = 0.42;
+    let connectedAccounts = { twitter: false, telegram: false };
+    let claimedTasks = { twitterFollow: false, twitterLikeRetweet: false, telegramJoin: false, profileComplete: false };
+
+    function connectAccount(platform) {
+      connectedAccounts[platform] = true;
+      document.getElementById(`${platform}Status`).textContent = 'Connected';
+      document.getElementById(`${platform}Connect`).style.display = 'none';
+      document.getElementById(`${platform}Disconnect`).style.display = 'inline';
+      updateTaskStatus();
+      saveProfile();
+    }
+
+    function disconnectAccount(platform) {
+      connectedAccounts[platform] = false;
+      document.getElementById(`${platform}Status`).textContent = 'Not connected';
+      document.getElementById(`${platform}Connect`).style.display = 'inline';
+      document.getElementById(`${platform}Disconnect`).style.display = 'none';
+      updateTaskStatus();
+      saveProfile();
+    }
+
+    function updateTaskStatus() {
+      if (connectedAccounts.twitter) {
+        document.getElementById('twitterFollowClaim').classList.add('unlocked');
+        document.getElementById('twitterLikeRetweetClaim').classList.add('unlocked');
+      } else {
+        document.getElementById('twitterFollowClaim').classList.remove('unlocked');
+        document.getElementById('twitterLikeRetweetClaim').classList.remove('unlocked');
+      }
+      if (connectedAccounts.telegram) {
+        document.getElementById('telegramJoinClaim').classList.add('unlocked');
+      } else {
+        document.getElementById('telegramJoinClaim').classList.remove('unlocked');
+      }
+      if (connectedAccounts.twitter && connectedAccounts.telegram) {
+        document.getElementById('profileCompleteClaim').classList.add('unlocked');
+      } else {
+        document.getElementById('profileCompleteClaim').classList.remove('unlocked');
+      }
+    }
+
+    function claimTask(task) {
+      if (!document.getElementById(`${task}Claim`).classList.contains('unlocked')) return;
+      if (confirm(`Have you completed the ${task.replace('twitter', 'Twitter ').replace('telegram', 'Telegram ').replace('profile', 'Profile ')} task?`)) {
+        claimedTasks[task] = true;
+        document.getElementById(`${task}Claim`).classList.remove('unlocked');
+        document.getElementById(`${task}Claim`).classList.add('claimed');
+        document.getElementById(`${task}Claim`).textContent = 'Claimed';
+        if (task === 'profileComplete') balance += 0.20;
+        else balance += 0.10;
+        alert(`${task.replace('twitter', 'Twitter ').replace('telegram', 'Telegram ').replace('profile', 'Profile ')} claimed successfully! +$${task === 'profileComplete' ? '0.20' : '0.10'}`);
+        if (claimedTasks.twitterFollow && claimedTasks.twitterLikeRetweet && claimedTasks.telegramJoin && !claimedTasks.profileComplete) {
+          claimedTasks.profileComplete = true;
+          document.getElementById('profileCompleteClaim').classList.remove('unlocked');
+          document.getElementById('profileCompleteClaim').classList.add('claimed');
+          document.getElementById('profileCompleteClaim').textContent = 'Claimed';
+          balance += 0.20;
+          alert('Profile Complete task auto-claimed! +$0.20');
+        }
+      }
+    }
+
+    function saveProfile() {
+      localStorage.setItem('connectedAccounts', JSON.stringify(connectedAccounts));
+    }
+
+    // Load saved state
+    (function() {
+      const savedAccounts = JSON.parse(localStorage.getItem('connectedAccounts') || '{}');
+      connectedAccounts = { ...connectedAccounts, ...savedAccounts };
+      if (connectedAccounts.twitter) {
+        document.getElementById('twitterStatus').textContent = 'Connected';
+        document.getElementById('twitterConnect').style.display = 'none';
+        document.getElementById('twitterDisconnect').style.display = 'inline';
+      }
+      if (connectedAccounts.telegram) {
+        document.getElementById('telegramStatus').textContent = 'Connected';
+        document.getElementById('telegramConnect').style.display = 'none';
+        document.getElementById('telegramDisconnect').style.display = 'inline';
+      }
+      updateTaskStatus();
+    })();
+  </script>
+</body>
+</html>
