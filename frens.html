@@ -1,0 +1,280 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frens - Legendssui</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298, #4a2c6f);
+      color: #e0e7ff;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px 30px;
+      background: rgba(0, 0, 0, 0.6);
+      width: 100%;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+    .logo {
+      width: 40px;
+      height: 40px;
+    }
+    .container {
+      padding: 20px;
+      width: 90%;
+      max-width: 900px;
+      text-align: center;
+      flex: 1;
+    }
+    .referral-box {
+      background: #1c2526;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      margin-bottom: 20px;
+      text-align: center;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .referral-box:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.6);
+    }
+    .referral-box h3 {
+      margin: 0 0 15px;
+      font-size: 18px;
+      color: #fff;
+    }
+    .referral-link {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px 20px;
+      border-radius: 10px;
+      color: #bbdefb;
+      font-size: 14px;
+      word-break: break-all;
+      margin-bottom: 10px;
+    }
+    .copy-btn {
+      padding: 8px 15px;
+      background: linear-gradient(90deg, #42a5f5, #1976d2);
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(66, 165, 245, 0.3);
+    }
+    .copy-btn:hover {
+      background: linear-gradient(90deg, #64b5f6, #1e88e5);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(66, 165, 245, 0.5);
+    }
+    .referral-stats {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .referral-stats p {
+      font-size: 16px;
+      color: #e0e7ff;
+      margin: 5px 0;
+    }
+    .referral-stats .count {
+      font-size: 24px;
+      font-weight: bold;
+      color: #ffd700;
+    }
+    footer {
+      margin-top: auto;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: #ccc;
+    }
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+    .nav-bar button {
+      background: none;
+      border: none;
+      color: #bbdefb;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 5px;
+      transition: color 0.3s ease;
+    }
+    .nav-bar button:hover {
+      color: #90caf9;
+    }
+    .nav-bar button span {
+      font-size: 10px;
+      margin-top: 2px;
+    }
+    @media (max-width: 600px) {
+      .header {
+        padding: 10px 15px;
+      }
+      .referral-box {
+        padding: 15px;
+      }
+      .referral-box h3 {
+        font-size: 16px;
+      }
+      .referral-link {
+        font-size: 12px;
+        padding: 8px 15px;
+      }
+      .copy-btn {
+        padding: 6px 12px;
+        font-size: 10px;
+      }
+      .referral-stats p {
+        font-size: 14px;
+      }
+      .referral-stats .count {
+        font-size: 20px;
+      }
+      .nav-bar button {
+        font-size: 12px;
+      }
+      .nav-bar button span {
+        font-size: 9px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <svg class="logo" viewBox="0 0 100 100" fill="none" stroke="#e0e7ff">
+      <circle cx="50" cy="50" r="40" stroke-width="5"/>
+      <text x="50" y="55" font-size="20" text-anchor="middle" fill="#e0e7ff">L</text>
+    </svg>
+  </div>
+  <div class="container">
+    <div class="referral-box">
+      <h3>Your Referral Link</h3>
+      <div class="referral-link" id="referralLink">https://legendssui.com/ref/uid123456</div>
+      <button class="copy-btn" onclick="copyReferralLink()">Copy Link</button>
+    </div>
+    <div class="referral-stats">
+      <p>Referral Count: <span class="count" id="referralCount">0</span></p>
+      <p>Earn <span class="count">50 Points</span> per successful referral!</p>
+    </div>
+  </div>
+  <footer>
+    © 2025 Legendssui. All rights reserved.
+  </footer>
+  <div class="nav-bar">
+    <button onclick="window.location.href='index.html'">
+      <span>🏠</span>
+      <span>Home</span>
+    </button>
+    <button onclick="window.location.href='earn.html'">
+      <span>💰</span>
+      <span>Earn</span>
+    </button>
+    <button onclick="window.location.href='sui_mem_soon.html'">
+      <span>🪐</span>
+      <span>Memepad</span>
+    </button>
+    <button onclick="window.location.href='frens.html'">
+      <span>👥</span>
+      <span>Frens</span>
+    </button>
+  </div>
+  <script>
+    let referralCount = 0;
+    const referralLinkElement = document.getElementById('referralLink');
+    const referralCountElement = document.getElementById('referralCount');
+
+    // Generate a unique referral link (dummy for now)
+    function generateReferralLink() {
+      const userId = 'uid' + Math.random().toString(36).substr(2, 9);
+      return `https://legendssui.com/ref/${userId}`;
+    }
+
+    function copyReferralLink() {
+      const link = referralLinkElement.textContent;
+      navigator.clipboard.writeText(link).then(() => {
+        alert('Referral link copied to clipboard!');
+      });
+    }
+
+    // Simulate referral count (for demo purposes)
+    function updateReferralCount() {
+      referralCount = parseInt(localStorage.getItem('referralCount') || '0');
+      referralCountElement.textContent = referralCount;
+    }
+
+    // Initialize
+    (function() {
+      referralLinkElement.textContent = generateReferralLink();
+      updateReferralCount();
+    })();
+  </script>
+</body>
+</html>

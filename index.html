@@ -1,0 +1,771 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Legendssui</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298, #4a2c6f);
+      color: #e0e7ff;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+      background: rgba(0, 0, 0, 0.6);
+      width: 100%;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+    .logo {
+      width: 40px;
+      height: 40px;
+    }
+    .menu {
+      position: relative;
+      display: inline-block;
+    }
+    .menu-btn {
+      padding: 10px 25px;
+      background: linear-gradient(90deg, #42a5f5, #1976d2);
+      color: #fff;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(66, 165, 245, 0.3);
+    }
+    .menu-btn:hover {
+      background: linear-gradient(90deg, #64b5f6, #1e88e5);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(66, 165, 245, 0.5);
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      right: 0;
+      background: rgba(42, 82, 152, 0.9);
+      min-width: 220px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      border-radius: 8px;
+      padding: 12px;
+      animation: fadeIn 0.2s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .dropdown-content p {
+      margin: 8px 0;
+      padding: 8px;
+      color: #e0e7ff;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(224, 231, 255, 0.2);
+    }
+    .dropdown-content button {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      background: linear-gradient(90deg, #42a5f5, #1976d2);
+      color: #fff;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(66, 165, 245, 0.3);
+    }
+    .dropdown-content button:hover {
+      background: linear-gradient(90deg, #64b5f6, #1e88e5);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(66, 165, 245, 0.5);
+    }
+    .logout-btn {
+      background: linear-gradient(90deg, #ef5350, #d32f2f);
+      color: #fff;
+    }
+    .logout-btn:hover {
+      background: linear-gradient(90deg, #f6685e, #c62828);
+    }
+    .container {
+      padding: 20px;
+      width: 90%;
+      max-width: 900px;
+      text-align: center;
+      flex: 1;
+    }
+    .wallet-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      margin-bottom: 20px;
+      text-align: left;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .wallet-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.6);
+    }
+    .wallet-card .top-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .wallet-card .top-section h3 {
+      margin: 0;
+      font-size: 18px;
+      color: #e0e7ff;
+    }
+    .wallet-card .top-section .balance {
+      font-size: 28px;
+      font-weight: bold;
+      color: #bbdefb;
+    }
+    .wallet-card .top-section .icons {
+      display: flex;
+      gap: 10px;
+    }
+    .wallet-card .top-section .icons button {
+      background: none;
+      border: none;
+      color: #bbdefb;
+      font-size: 20px;
+      cursor: pointer;
+      transition: color 0.3s ease;
+      padding: 5px;
+      border-radius: 50%;
+    }
+    .wallet-card .top-section .icons button:hover {
+      color: #90caf9;
+      background-color: rgba(187, 222, 251, 0.1);
+    }
+    .wallet-card .actions {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+    }
+    .wallet-card .actions button {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.3s ease;
+      color: #fff;
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(90deg, #42a5f5, #1976d2);
+      box-shadow: 0 4px 10px rgba(66, 165, 245, 0.3);
+    }
+    .wallet-card .actions button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .wallet-card .actions button:hover:not(:disabled) {
+      background: linear-gradient(90deg, #64b5f6, #1e88e5);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(66, 165, 245, 0.5);
+    }
+    .wallet-card .actions span {
+      margin-top: 5px;
+      font-size: 12px;
+      color: #e0e7ff;
+    }
+    .wallet-card .recent-transactions {
+      margin-top: 20px;
+      border-top: 1px solid rgba(224, 231, 255, 0.2);
+      padding-top: 15px;
+    }
+    .wallet-card .recent-transactions h4 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .wallet-card .recent-transactions .see-all {
+      font-size: 14px;
+      color: #bbdefb;
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+    .wallet-card .recent-transactions .see-all:hover {
+      color: #90caf9;
+    }
+    .wallet-card .recent-transactions p {
+      margin: 5px 0;
+      font-size: 14px;
+      color: #ccc;
+    }
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 900;
+    }
+    .popup, .dashboard-popup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(42, 82, 152, 0.9);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+      width: 90%;
+      max-width: 500px;
+      z-index: 1000;
+      text-align: left;
+      animation: slideIn 0.3s ease-out;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translate(-50%, -60%); }
+      to { opacity: 1; transform: translate(-50%, -50%); }
+    }
+    .popup h2, .dashboard-popup h2 {
+      color: #e0e7ff;
+      margin-top: 0;
+      text-align: center;
+    }
+    .popup .input-group, .dashboard-popup .input-group {
+      margin: 15px 0;
+    }
+    .popup input, .dashboard-popup input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #bbdefb;
+      border-radius: 10px;
+      background: rgba(60, 77, 78, 0.5);
+      color: #e0e7ff;
+      box-sizing: border-box;
+    }
+    .popup button, .dashboard-popup button {
+      padding: 10px 20px;
+      background: linear-gradient(90deg, #42a5f5, #1976d2);
+      color: #fff;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(66, 165, 245, 0.3);
+    }
+    .popup button:hover, .dashboard-popup button:hover {
+      background: linear-gradient(90deg, #64b5f6, #1e88e5);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(66, 165, 245, 0.5);
+    }
+    .close-btn {
+      background: linear-gradient(90deg, #6c757d, #5a6268);
+      color: #fff;
+      padding: 5px 15px;
+      border-radius: 25px;
+    }
+    .close-btn:hover {
+      background: linear-gradient(90deg, #7f8c8d, #6b6e70);
+    }
+    footer {
+      margin-top: auto;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: #ccc;
+    }
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+    .nav-bar button {
+      background: none;
+      border: none;
+      color: #bbdefb;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 5px;
+      transition: color 0.3s ease;
+    }
+    .nav-bar button:hover {
+      color: #90caf9;
+    }
+    .nav-bar button span {
+      font-size: 10px;
+      margin-top: 2px;
+    }
+    /* Responsive Design */
+    @media (max-width: 600px) {
+      .header {
+        padding: 10px 15px;
+      }
+      .header h1 {
+        font-size: 1.5rem;
+      }
+      .menu-btn {
+        padding: 8px 15px;
+        font-size: 14px;
+      }
+      .wallet-card {
+        padding: 15px;
+      }
+      .wallet-card .top-section .balance {
+        font-size: 22px;
+      }
+      .wallet-card .actions button {
+        width: 50px;
+        height: 50px;
+        font-size: 16px;
+      }
+      .wallet-card .actions span {
+        font-size: 10px;
+      }
+      .popup, .dashboard-popup {
+        max-width: 90%;
+        padding: 15px;
+      }
+      .nav-bar button {
+        font-size: 12px;
+      }
+      .nav-bar button span {
+        font-size: 9px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <svg class="logo" viewBox="0 0 100 100" fill="none" stroke="#e0e7ff">
+      <circle cx="50" cy="50" r="40" stroke-width="5"/>
+      <text x="50" y="55" font-size="20" text-anchor="middle" fill="#e0e7ff">L</text>
+    </svg>
+    <div class="menu">
+      <button class="menu-btn" id="menuBtn">Create ID</button>
+      <div class="dropdown-content" id="profileDropdown">
+        <p><strong>Email:</strong> <span id="profileEmail"></span></p>
+        <p><strong>Wallet Address:</strong> <span id="profileWalletAddress">Not created</span></p>
+        <p><strong>Balance:</strong> <span id="profileBalance">$0.42</span></p>
+        <button onclick="showDashboard()">Edit Profile</button>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="wallet-card">
+      <div class="top-section">
+        <div>
+          <h3>Total Balance</h3>
+          <div class="balance" id="homeBalance">$0.42</div>
+        </div>
+        <div class="icons">
+          <button onclick="refreshBalance()" title="Refresh">⟳</button>
+          <button onclick="toggleBalanceVisibility()" title="Show/Hide" id="eyeIcon">👁️</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="deposit-btn" onclick="showDepositPopup()">
+          <span style="font-size: 20px;">+</span>
+          <span>Deposit</span>
+        </button>
+        <button class="bridge-btn" disabled>
+          <span style="font-size: 20px;">🌉</span>
+          <span>Bridge<br>(Soon)</span>
+        </button>
+        <button class="earn-btn" disabled>
+          <span style="font-size: 20px;">💰</span>
+          <span>Earn<br>(Soon)</span>
+        </button>
+        <button class="transfer-btn" onclick="showTransferPopup()">
+          <span style="font-size: 20px;">➡️</span>
+          <span>Transfer</span>
+        </button>
+      </div>
+      <div class="recent-transactions">
+        <h4>
+          Recent Transactions
+          <a href="#" class="see-all" onclick="showTransactionDetails()">See all</a>
+        </h4>
+        <p id="transactionHistory">No transactions yet...</p>
+      </div>
+    </div>
+    <div class="dashboard-popup" id="dashboardPopup">
+      <h2>Your Dashboard</h2>
+      <p><strong>Email:</strong> <span id="userEmail"></span></p>
+      <p><strong>Wallet Address:</strong> <span id="walletAddress">Not created</span></p>
+      <p><strong>Balance:</strong> <span id="dashboardBalance">$0.42</span></p>
+      <div class="actions">
+        <button onclick="createWalletPopup()">Create Sui Wallet</button>
+        <button onclick="showForgetPasswordPopup()">Forget Password</button>
+        <button class="close-btn" onclick="hideDashboard()">Close</button>
+      </div>
+    </div>
+  </div>
+  <div class="overlay" id="overlay" onclick="hidePopup()"></div>
+  <div class="popup" id="authPopup">
+    <h2>Create ID</h2>
+    <div class="input-group">
+      <label>Email:</label>
+      <input type="email" id="emailInput" placeholder="Enter your email">
+    </div>
+    <div class="input-group">
+      <label>Password:</label>
+      <input type="password" id="passwordInput" placeholder="Enter password">
+    </div>
+    <button onclick="handleAuth()">Submit</button>
+  </div>
+  <div class="popup" id="walletPopup">
+    <h2>Create Sui Wallet</h2>
+    <p>Wallet will be created securely with your account.</p>
+    <button onclick="createWallet()">Create</button>
+  </div>
+  <div class="popup" id="forgetPasswordPopup">
+    <h2>Reset Password</h2>
+    <div class="input-group">
+      <label>Email:</label>
+      <input type="email" id="resetEmailInput" placeholder="Enter your email">
+    </div>
+    <button onclick="resetPassword()">Reset</button>
+  </div>
+  <div class="popup" id="depositPopup">
+    <h2>Deposit Funds</h2>
+    <div class="input-group">
+      <label>Amount:</label>
+      <input type="number" id="depositAmount" placeholder="Enter amount">
+    </div>
+    <button onclick="depositFunds()">Deposit</button>
+  </div>
+  <div class="popup" id="transferPopup">
+    <h2>Transfer Funds</h2>
+    <div class="input-group">
+      <label>Recipient Address:</label>
+      <input type="text" id="transferAddress" placeholder="Enter address">
+    </div>
+    <div class="input-group">
+      <label>Amount:</label>
+      <input type="number" id="transferAmount" placeholder="Enter amount">
+    </div>
+    <button onclick="transferFunds()">Transfer</button>
+  </div>
+  <div class="popup" id="transactionDetailsPopup">
+    <h2>Transaction Details</h2>
+    <div id="transactionDetailsContent"></div>
+    <button onclick="hidePopup()">Close</button>
+  </div>
+  <div class="nav-bar">
+    <button onclick="window.location.href='index.html'">
+      <span>🏠</span>
+      <span>Home</span>
+    </button>
+    <button onclick="window.location.href='earn.html'">
+      <span>💰</span>
+      <span>Earn</span>
+    </button>
+    <button onclick="window.location.href='sui_mem_soon.html'">
+      <span>🪐</span>
+      <span>Memepad</span>
+    </button>
+    <button onclick="window.location.href='frens.html'">
+      <span>👥</span>
+      <span>Frens</span>
+    </button>
+  </div>
+  <footer>
+    <p>© 2025 Legendssui. All rights reserved.</p>
+  </footer>
+
+  <script>
+    const menuBtn = document.getElementById('menuBtn');
+    const profileDropdown = document.getElementById('profileDropdown');
+    const overlay = document.getElementById('overlay');
+    let userData = localStorage.getItem('userData') ? JSON.parse(localStorage.getItem('userData')) : null;
+    let transactions = [];
+    let balanceVisible = true;
+
+    // Check if user is already logged in
+    if (userData) {
+      menuBtn.textContent = 'Profile';
+      document.getElementById('profileEmail').textContent = userData.email;
+      document.getElementById('profileBalance').textContent = userData.balance || '$0.42';
+      document.getElementById('homeBalance').textContent = userData.balance || '$0.42';
+      document.getElementById('dashboardBalance').textContent = userData.balance || '$0.42';
+      if (userData.walletAddress) {
+        document.getElementById('profileWalletAddress').textContent = userData.walletAddress;
+        document.getElementById('walletAddress').textContent = userData.walletAddress;
+      }
+      if (userData.transactions) {
+        updateTransactionHistory(userData.transactions);
+      }
+    }
+
+    function showPopup(popupId) {
+      document.getElementById(popupId).style.display = 'block';
+      overlay.style.display = 'block';
+    }
+
+    function hidePopup() {
+      const popups = ['authPopup', 'walletPopup', 'forgetPasswordPopup', 'depositPopup', 'transferPopup', 'dashboardPopup', 'transactionDetailsPopup'];
+      popups.forEach(id => document.getElementById(id).style.display = 'none');
+      profileDropdown.style.display = 'none';
+      overlay.style.display = 'none';
+    }
+
+    function showDashboard() {
+      if (userData) {
+        document.getElementById('userEmail').textContent = userData.email;
+        document.getElementById('walletAddress').textContent = userData.walletAddress || 'Not created';
+        document.getElementById('dashboardBalance').textContent = userData.balance || '$0.42';
+        showPopup('dashboardPopup');
+      }
+    }
+
+    function hideDashboard() {
+      hidePopup();
+    }
+
+    menuBtn.addEventListener('click', () => {
+      if (userData) {
+        profileDropdown.style.display = profileDropdown.style.display === 'block' ? 'none' : 'block';
+        overlay.style.display = profileDropdown.style.display;
+      } else {
+        showPopup('authPopup');
+      }
+    });
+
+    function handleAuth() {
+      const email = document.getElementById('emailInput').value;
+      const password = document.getElementById('passwordInput').value;
+
+      if (!email || !password) {
+        alert('All fields are required!');
+        return;
+      }
+
+      userData = { email, password, balance: '$0.42' };
+      localStorage.setItem('userData', JSON.stringify(userData));
+      document.getElementById('profileEmail').textContent = userData.email;
+      document.getElementById('profileBalance').textContent = userData.balance;
+      document.getElementById('homeBalance').textContent = userData.balance;
+      document.getElementById('dashboardBalance').textContent = userData.balance;
+      menuBtn.textContent = 'Profile';
+      hidePopup();
+    }
+
+    function logout() {
+      userData = null;
+      localStorage.removeItem('userData');
+      menuBtn.textContent = 'Create ID';
+      profileDropdown.style.display = 'none';
+      overlay.style.display = 'none';
+      document.getElementById('profileEmail').textContent = '';
+      document.getElementById('profileBalance').textContent = '$0.42';
+      document.getElementById('homeBalance').textContent = '$0.42';
+      document.getElementById('dashboardBalance').textContent = '$0.42';
+      document.getElementById('profileWalletAddress').textContent = 'Not created';
+      document.getElementById('walletAddress').textContent = 'Not created';
+      updateTransactionHistory([]);
+    }
+
+    function createWalletPopup() {
+      showPopup('walletPopup');
+    }
+
+    function createWallet() {
+      if (userData) {
+        const dummyAddress = '0x' + Math.random().toString(16).substr(2, 40).toLowerCase();
+        const shortAddress = `${dummyAddress.substr(0, 4)}...${dummyAddress.substr(-4)}`;
+        userData.walletAddress = shortAddress;
+        localStorage.setItem('userData', JSON.stringify(userData));
+        document.getElementById('profileWalletAddress').textContent = shortAddress;
+        document.getElementById('walletAddress').textContent = shortAddress;
+        hidePopup();
+      }
+    }
+
+    function showForgetPasswordPopup() {
+      showPopup('forgetPasswordPopup');
+      document.getElementById('resetEmailInput').value = userData.email;
+    }
+
+    function resetPassword() {
+      const email = document.getElementById('resetEmailInput').value;
+      if (email === userData.email) {
+        userData.password = 'newpassword';
+        localStorage.setItem('userData', JSON.stringify(userData));
+        alert('Password reset successfully! New password: newpassword');
+        hidePopup();
+      } else {
+        alert('Email does not match!');
+      }
+    }
+
+    function refreshBalance() {
+      alert('Balance refreshed! (Dummy action)');
+    }
+
+    function toggleBalanceVisibility() {
+      balanceVisible = !balanceVisible;
+      const balanceElements = [
+        document.getElementById('homeBalance'),
+        document.getElementById('profileBalance'),
+        document.getElementById('dashboardBalance')
+      ];
+      const eyeIcon = document.getElementById('eyeIcon');
+      balanceElements.forEach(element => {
+        element.textContent = balanceVisible ? (userData?.balance || '$0.42') : '****';
+      });
+      eyeIcon.textContent = balanceVisible ? '👁️' : '👁️‍🗨️';
+    }
+
+    function showDepositPopup() {
+      if (userData && userData.walletAddress) {
+        showPopup('depositPopup');
+      } else {
+        alert('Please create a wallet first!');
+      }
+    }
+
+    function depositFunds() {
+      const amount = document.getElementById('depositAmount').value;
+      if (amount && amount > 0) {
+        const currentBalance = parseFloat(userData.balance.replace('$', '')) || 0;
+        userData.balance = `$${currentBalance + parseFloat(amount)}`;
+        localStorage.setItem('userData', JSON.stringify(userData));
+        document.getElementById('homeBalance').textContent = userData.balance;
+        document.getElementById('profileBalance').textContent = userData.balance;
+        document.getElementById('dashboardBalance').textContent = userData.balance;
+        transactions.push(`Deposited $${amount}`);
+        userData.transactions = transactions;
+        localStorage.setItem('userData', JSON.stringify(userData));
+        updateTransactionHistory(transactions);
+        hidePopup();
+      } else {
+        alert('Please enter a valid amount!');
+      }
+    }
+
+    function showTransferPopup() {
+      if (userData && userData.walletAddress) {
+        showPopup('transferPopup');
+      } else {
+        alert('Please create a wallet first!');
+      }
+    }
+
+    function transferFunds() {
+      const address = document.getElementById('transferAddress').value;
+      const amount = document.getElementById('transferAmount').value;
+      if (address && amount && amount > 0) {
+        const currentBalance = parseFloat(userData.balance.replace('$', '')) || 0;
+        if (amount <= currentBalance) {
+          userData.balance = `$${currentBalance - parseFloat(amount)}`;
+          localStorage.setItem('userData', JSON.stringify(userData));
+          document.getElementById('homeBalance').textContent = userData.balance;
+          document.getElementById('profileBalance').textContent = userData.balance;
+          document.getElementById('dashboardBalance').textContent = userData.balance;
+          transactions.push(`Transferred $${amount} to ${address.substr(0, 4)}...${address.substr(-4)}`);
+          userData.transactions = transactions;
+          localStorage.setItem('userData', JSON.stringify(userData));
+          updateTransactionHistory(transactions);
+          hidePopup();
+        } else {
+          alert('Insufficient balance!');
+        }
+      } else {
+        alert('Please enter a valid address and amount!');
+      }
+    }
+
+    function showTransactionDetails() {
+      if (transactions.length > 0) {
+        const details = transactions.map((tx, index) => `<p>${index + 1}. ${tx}</p>`).join('');
+        document.getElementById('transactionDetailsContent').innerHTML = details;
+        showPopup('transactionDetailsPopup');
+      } else {
+        alert('No transactions yet!');
+      }
+    }
+
+    function updateTransactionHistory(transactions) {
+      const historyElement = document.getElementById('transactionHistory');
+      if (transactions.length > 0) {
+        const recent = transactions.slice(-3);
+        historyElement.innerHTML = recent.map(tx => `<p>${tx}</p>`).join('');
+      } else {
+        historyElement.textContent = 'No transactions yet...';
+      }
+    }
+  </script>
+</body>
+</html>

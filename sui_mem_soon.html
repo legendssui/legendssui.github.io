@@ -1,0 +1,200 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SUI Mem - Coming Soon</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298, #4a2c6f);
+      color: #e0e7ff;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px 30px;
+      background: rgba(0, 0, 0, 0.6);
+      width: 100%;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+    .logo {
+      width: 40px;
+      height: 40px;
+    }
+    .container {
+      padding: 20px;
+      width: 90%;
+      max-width: 900px;
+      text-align: center;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .coming-soon-box {
+      background: #1c2526;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .coming-soon-box:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.6);
+    }
+    .coming-soon-box h1 {
+      margin: 0 0 15px;
+      font-size: 28px;
+      color: #ffd700;
+    }
+    .coming-soon-box p {
+      margin: 0;
+      font-size: 16px;
+      color: #bbdefb;
+    }
+    footer {
+      margin-top: auto;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: #ccc;
+    }
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+    .nav-bar button {
+      background: none;
+      border: none;
+      color: #bbdefb;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 5px;
+      transition: color 0.3s ease;
+    }
+    .nav-bar button:hover {
+      color: #90caf9;
+    }
+    .nav-bar button span {
+      font-size: 10px;
+      margin-top: 2px;
+    }
+    @media (max-width: 600px) {
+      .header {
+        padding: 10px 15px;
+      }
+      .coming-soon-box {
+        padding: 20px;
+      }
+      .coming-soon-box h1 {
+        font-size: 22px;
+      }
+      .coming-soon-box p {
+        font-size: 14px;
+      }
+      .nav-bar button {
+        font-size: 12px;
+      }
+      .nav-bar button span {
+        font-size: 9px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <svg class="logo" viewBox="0 0 100 100" fill="none" stroke="#e0e7ff">
+      <circle cx="50" cy="50" r="40" stroke-width="5"/>
+      <text x="50" y="55" font-size="20" text-anchor="middle" fill="#e0e7ff">L</text>
+    </svg>
+  </div>
+  <div class="container">
+    <div class="coming-soon-box">
+      <h1>SUI Mem - Coming Soon!</h1>
+      <p>Stay tuned for updates!</p>
+    </div>
+  </div>
+  <footer>
+    © 2025 Legendssui. All rights reserved.
+  </footer>
+  <div class="nav-bar">
+    <button onclick="window.location.href='index.html'">
+      <span>🏠</span>
+      <span>Home</span>
+    </button>
+    <button onclick="window.location.href='earn.html'">
+      <span>💰</span>
+      <span>Earn</span>
+    </button>
+    <button onclick="window.location.href='sui_mem_soon.html'">
+      <span>🪐</span>
+      <span>Memepad</span>
+    </button>
+    <button onclick="window.location.href='frens.html'">
+      <span>👥</span>
+      <span>Frens</span>
+    </button>
+  </div>
+</body>
+</html>
