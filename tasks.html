@@ -76,6 +76,29 @@
       text-align: center;
       flex: 1;
     }
+    .balance-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      margin-bottom: 20px;
+      text-align: center;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .balance-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.6);
+    }
+    .balance-card h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      color: #fff;
+    }
+    .balance-card .points {
+      font-size: 24px;
+      font-weight: bold;
+      color: #ffd700;
+    }
     .connect-card {
       background: rgba(255, 255, 255, 0.1);
       border-radius: 15px;
@@ -120,6 +143,57 @@
       background: linear-gradient(90deg, #f6685e, #c62828);
       transform: translateY(-2px);
       box-shadow: 0 6px 15px rgba(239, 83, 80, 0.5);
+    }
+    .connect-card .claimed-points {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #ffd700;
+      text-align: center;
+    }
+    .daily-checkin-card {
+      background: #1c2526;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      margin-bottom: 20px;
+      text-align: center;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .daily-checkin-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.6);
+    }
+    .daily-checkin-card h3 {
+      margin: 0 0 15px;
+      font-size: 18px;
+      color: #fff;
+    }
+    .daily-checkin-card .checkin-btn {
+      padding: 10px 20px;
+      background: linear-gradient(90deg, #42a5f5, #1976d2);
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(66, 165, 245, 0.3);
+    }
+    .daily-checkin-card .checkin-btn:hover {
+      background: linear-gradient(90deg, #64b5f6, #1e88e5);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(66, 165, 245, 0.5);
+    }
+    .daily-checkin-card .checkin-btn:disabled {
+      background: linear-gradient(90deg, #757575, #424242);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .daily-checkin-card p {
+      margin: 10px 0;
+      font-size: 14px;
+      color: #e0e7ff;
     }
     .task-card {
       background: #1c2526;
@@ -229,11 +303,14 @@
       .header {
         padding: 10px 15px;
       }
-      .connect-card, .task-card {
+      .balance-card, .connect-card, .daily-checkin-card, .task-card {
         padding: 15px;
       }
-      .task-card h3 {
+      .balance-card h3, .daily-checkin-card h3, .task-card h3 {
         font-size: 16px;
+      }
+      .balance-card .points {
+        font-size: 20px;
       }
       .task-card .task-item span {
         font-size: 12px;
@@ -259,6 +336,10 @@
     </svg>
   </div>
   <div class="container">
+    <div class="balance-card">
+      <h3>Your Points Balance</h3>
+      <div class="points" id="pointsBalance">0</div>
+    </div>
     <div class="connect-card">
       <h3>Connect Accounts</h3>
       <div style="margin: 10px 0;">
@@ -271,6 +352,14 @@
         <span id="telegramStatus" style="margin-left: 10px; color: #bbb;">Not connected</span>
         <button class="disconnect-btn" id="telegramDisconnect" style="display: none;" onclick="disconnectAccount('telegram')">Disconnect</button>
       </div>
+      <div class="claimed-points">
+        Claimed Points: <span id="claimedPoints">0</span>
+      </div>
+    </div>
+    <div class="daily-checkin-card">
+      <h3>Daily Check-In</h3>
+      <p>Earn 50 points every day!</p>
+      <button class="checkin-btn" id="checkInBtn" onclick="dailyCheckIn()">Check In</button>
     </div>
     <div class="task-card">
       <h3>Tasks to Earn More Points</h3>
@@ -328,9 +417,62 @@
     </button>
   </div>
   <script>
-    let balance = 0.42;
+    let totalPoints = 0;
+    let claimedPoints = 0;
     let connectedAccounts = { twitter: false, telegram: false };
     let claimedTasks = { twitterFollow: false, twitterLikeRetweet: false, telegramJoin: false, profileComplete: false };
+    let lastCheckInDate = null;
+
+    // Load saved state
+    (function() {
+      const savedAccounts = JSON.parse(localStorage.getItem('connectedAccounts') || '{}');
+      connectedAccounts = { ...connectedAccounts, ...savedAccounts };
+      if (connectedAccounts.twitter) {
+        document.getElementById('twitterStatus').textContent = 'Connected';
+        document.getElementById('twitterConnect').style.display = 'none';
+        document.getElementById('twitterDisconnect').style.display = 'inline';
+      }
+      if (connectedAccounts.telegram) {
+        document.getElementById('telegramStatus').textContent = 'Connected';
+        document.getElementById('telegramConnect').style.display = 'none';
+        document.getElementById('telegramDisconnect').style.display = 'inline';
+      }
+
+      const savedTasks = JSON.parse(localStorage.getItem('claimedTasks') || '{}');
+      claimedTasks = { ...claimedTasks, ...savedTasks };
+      if (claimedTasks.twitterFollow) {
+        document.getElementById('twitterFollowClaim').classList.remove('unlocked');
+        document.getElementById('twitterFollowClaim').classList.add('claimed');
+        document.getElementById('twitterFollowClaim').textContent = 'Claimed';
+        claimedPoints += 100;
+      }
+      if (claimedTasks.twitterLikeRetweet) {
+        document.getElementById('twitterLikeRetweetClaim').classList.remove('unlocked');
+        document.getElementById('twitterLikeRetweetClaim').classList.add('claimed');
+        document.getElementById('twitterLikeRetweetClaim').textContent = 'Claimed';
+        claimedPoints += 100;
+      }
+      if (claimedTasks.telegramJoin) {
+        document.getElementById('telegramJoinClaim').classList.remove('unlocked');
+        document.getElementById('telegramJoinClaim').classList.add('claimed');
+        document.getElementById('telegramJoinClaim').textContent = 'Claimed';
+        claimedPoints += 100;
+      }
+      if (claimedTasks.profileComplete) {
+        document.getElementById('profileCompleteClaim').classList.remove('unlocked');
+        document.getElementById('profileCompleteClaim').classList.add('claimed');
+        document.getElementById('profileCompleteClaim').textContent = 'Claimed';
+        claimedPoints += 200;
+      }
+
+      totalPoints = parseInt(localStorage.getItem('totalPoints') || '0');
+      document.getElementById('pointsBalance').textContent = totalPoints;
+      document.getElementById('claimedPoints').textContent = claimedPoints;
+
+      lastCheckInDate = localStorage.getItem('lastCheckInDate');
+      checkDailyCheckInStatus();
+      updateTaskStatus();
+    })();
 
     function connectAccount(platform) {
       connectedAccounts[platform] = true;
@@ -377,16 +519,26 @@
         document.getElementById(`${task}Claim`).classList.remove('unlocked');
         document.getElementById(`${task}Claim`).classList.add('claimed');
         document.getElementById(`${task}Claim`).textContent = 'Claimed';
-        if (task === 'profileComplete') balance += 0.20;
-        else balance += 0.10;
-        alert(`${task.replace('twitter', 'Twitter ').replace('telegram', 'Telegram ').replace('profile', 'Profile ')} claimed successfully! +$${task === 'profileComplete' ? '0.20' : '0.10'}`);
+        const points = task === 'profileComplete' ? 200 : 100;
+        claimedPoints += points;
+        totalPoints += points;
+        document.getElementById('claimedPoints').textContent = claimedPoints;
+        document.getElementById('pointsBalance').textContent = totalPoints;
+        localStorage.setItem('totalPoints', totalPoints);
+        localStorage.setItem('claimedTasks', JSON.stringify(claimedTasks));
+        alert(`${task.replace('twitter', 'Twitter ').replace('telegram', 'Telegram ').replace('profile', 'Profile ')} claimed successfully! +${points} Points`);
         if (claimedTasks.twitterFollow && claimedTasks.twitterLikeRetweet && claimedTasks.telegramJoin && !claimedTasks.profileComplete) {
           claimedTasks.profileComplete = true;
           document.getElementById('profileCompleteClaim').classList.remove('unlocked');
           document.getElementById('profileCompleteClaim').classList.add('claimed');
           document.getElementById('profileCompleteClaim').textContent = 'Claimed';
-          balance += 0.20;
-          alert('Profile Complete task auto-claimed! +$0.20');
+          claimedPoints += 200;
+          totalPoints += 200;
+          document.getElementById('claimedPoints').textContent = claimedPoints;
+          document.getElementById('pointsBalance').textContent = totalPoints;
+          localStorage.setItem('totalPoints', totalPoints);
+          localStorage.setItem('claimedTasks', JSON.stringify(claimedTasks));
+          alert('Profile Complete task auto-claimed! +200 Points');
         }
       }
     }
@@ -395,22 +547,25 @@
       localStorage.setItem('connectedAccounts', JSON.stringify(connectedAccounts));
     }
 
-    // Load saved state
-    (function() {
-      const savedAccounts = JSON.parse(localStorage.getItem('connectedAccounts') || '{}');
-      connectedAccounts = { ...connectedAccounts, ...savedAccounts };
-      if (connectedAccounts.twitter) {
-        document.getElementById('twitterStatus').textContent = 'Connected';
-        document.getElementById('twitterConnect').style.display = 'none';
-        document.getElementById('twitterDisconnect').style.display = 'inline';
+    function dailyCheckIn() {
+      totalPoints += 50;
+      document.getElementById('pointsBalance').textContent = totalPoints;
+      document.getElementById('checkInBtn').disabled = true;
+      lastCheckInDate = new Date().toISOString().split('T')[0];
+      localStorage.setItem('lastCheckInDate', lastCheckInDate);
+      localStorage.setItem('totalPoints', totalPoints);
+      alert('Daily check-in successful! +50 Points');
+    }
+
+    function checkDailyCheckInStatus() {
+      const today = new Date().toISOString().split('T')[0];
+      const checkInBtn = document.getElementById('checkInBtn');
+      if (lastCheckInDate === today) {
+        checkInBtn.disabled = true;
+      } else {
+        checkInBtn.disabled = false;
       }
-      if (connectedAccounts.telegram) {
-        document.getElementById('telegramStatus').textContent = 'Connected';
-        document.getElementById('telegramConnect').style.display = 'none';
-        document.getElementById('telegramDisconnect').style.display = 'inline';
-      }
-      updateTaskStatus();
-    })();
+    }
   </script>
 </body>
 </html>
